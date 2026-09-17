@@ -4,8 +4,11 @@ set -eu
 PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$PROJECT_DIR"
 
+TEST_BUILD_DIR=$(mktemp -d windowcmd-test.XXXXXX)
+trap 'rm -rf "$TEST_BUILD_DIR"' EXIT HUP INT TERM
+
 printf '%s\n' 'Running tests...'
-make test
+make test BUILD_DIR="$TEST_BUILD_DIR"
 
 if [ -n "${PREFIX:-}" ]; then
     INSTALL_PREFIX=$PREFIX
