@@ -8,6 +8,7 @@ typedef struct Ui Ui;
 
 gint ui_selection_move(gint selected, guint count, gint delta);
 gboolean ui_result_matches(const CommandResult *result, const gchar *query);
+gchar *ui_completion_for_query(const CommandResult *result, const gchar *query);
 Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GError **error);
 void ui_show(Ui *ui, const WindowSnapshot *target);
 void ui_hide(Ui *ui);

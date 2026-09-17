@@ -79,8 +79,13 @@ The search field is focused when the palette opens.
 
 - Up/down: move selection
 - Ctrl+n/Ctrl+p: move selection
+- Tab: accept the highlighted inline completion
 - Enter: execute
 - Escape: hide
+
+The result area has a fixed height based on the configured maximum result
+count. It does not use a scroll wheel or a moving scroll container; visible
+results keep their descriptions on screen while only the highlight changes.
 
 Examples of built-in command syntax include:
 

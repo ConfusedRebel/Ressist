@@ -3,33 +3,34 @@ window {
 }
 
 #panel {
-  background: alpha(#101419, 0.97);
-  border: 1px solid alpha(#8fbcbb, 0.36);
-  border-radius: 12px;
-  padding: 14px;
+  background: #101419;
+  border: 1px solid #34404d;
+  border-radius: 8px;
+  padding: 16px;
 }
 
 #target {
   color: #d8dee9;
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 8px;
 }
 
 entry {
-  background: #1a2028;
-  border: 1px solid alpha(#81a1c1, 0.45);
+  background: transparent;
+  border: 1px solid #52667d;
   border-radius: 8px;
   color: #eceff4;
-  padding: 8px 10px;
+  font-size: 14px;
+  padding: 9px 10px;
 }
 
 row {
   border-radius: 7px;
-  padding: 8px;
+  padding: 6px 8px;
 }
 
 row:selected, row.selected {
-  background: alpha(#5e81ac, 0.62);
+  background: #28435f;
 }
 
 .result-title {
@@ -38,11 +39,22 @@ row:selected, row.selected {
 }
 
 .result-description {
-  color: #aeb8c5;
-  font-size: 11px;
+  color: #c0cad5;
+  font-size: 12px;
 }
 
 .result-provider {
-  color: #88c0d0;
-  font-size: 10px;
+  color: #8fbcbb;
+  font-size: 11px;
+}
+
+.current-description {
+  color: #c0cad5;
+  font-size: 12px;
+  margin: 2px 2px 2px;
+}
+
+.ghost {
+  color: #63748a;
+  font-size: 14px;
 }

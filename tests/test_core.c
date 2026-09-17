@@ -436,6 +436,20 @@ static void test_ui_navigation_and_filtering(void)
     g_assert_false(ui_result_matches(&result, "xyz"));
 }
 
+static void test_ui_inline_completion(void)
+{
+    CommandResult result = {
+        .command_text = "workspace 4",
+        .title = "WORKSPACE 4"
+    };
+    gchar *completion = ui_completion_for_query(&result, "work");
+
+    g_assert_cmpstr(completion, ==, "workspace 4");
+    g_free(completion);
+    g_assert_null(ui_completion_for_query(&result, "workspace 4"));
+    g_assert_null(ui_completion_for_query(&result, "space"));
+}
+
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -457,5 +471,6 @@ int main(int argc, char **argv)
     g_test_add_func("/providers/path-shell-kind", test_path_provider_is_shell_kind);
     g_test_add_func("/providers/arbitrary-shell", test_arbitrary_query_becomes_shell_result);
     g_test_add_func("/ui/navigation-filtering", test_ui_navigation_and_filtering);
+    g_test_add_func("/ui/inline-completion", test_ui_inline_completion);
     return g_test_run();
 }

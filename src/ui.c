@@ -3,6 +3,8 @@
 #include <gtk/gtk.h>
 #include <gtk4-layer-shell/gtk4-layer-shell.h>
 
+#include <string.h>
+
 #include "ranking.h"
 
 typedef struct {
@@ -16,6 +18,8 @@ struct Ui {
     HistoryStore *history;
     GtkWindow *window;
     GtkEntry *entry;
+    GtkLabel *ghost_label;
+    GtkLabel *current_description;
     GtkListBox *list;
     GtkLabel *target_label;
     GtkLabel *status_label;
@@ -77,6 +81,20 @@ gboolean ui_result_matches(const CommandResult *result, const gchar *query)
     matches = fuzzy_score(query ? query : "", haystack) >= 0;
     g_free(haystack);
     return matches;
+}
+
+gchar *ui_completion_for_query(const CommandResult *result, const gchar *query)
+{
+    gsize query_length;
+    if (!result || !result->command_text || !query || !*query) {
+        return NULL;
+    }
+    query_length = strlen(query);
+    if (strlen(result->command_text) <= query_length ||
+        g_ascii_strncasecmp(result->command_text, query, query_length) != 0) {
+        return NULL;
+    }
+    return g_strdup(result->command_text);
 }
 
 static gint ranked_compare(gconstpointer left, gconstpointer right, gpointer user_data)
@@ -174,6 +192,16 @@ static void refresh_rows(Ui *ui)
         gtk_widget_add_css_class(GTK_WIDGET(gtk_list_box_get_row_at_index(ui->list, 0)), "selected");
     }
     gtk_label_set_text(ui->status_label, ui->visible->len ? "" : "No matching commands");
+    if (ui->visible->len > 0) {
+        CommandResult *selected = g_ptr_array_index(ui->visible, 0);
+        gchar *completion = ui_completion_for_query(selected, query);
+        gtk_label_set_text(ui->current_description, selected->description);
+        gtk_label_set_text(ui->ghost_label, completion ? completion : "");
+        g_free(completion);
+    } else {
+        gtk_label_set_text(ui->current_description, "");
+        gtk_label_set_text(ui->ghost_label, "");
+    }
     g_ptr_array_unref(ranked);
 }
 
@@ -193,6 +221,10 @@ static void set_selected(Ui *ui, gint selected)
     new_row = gtk_list_box_get_row_at_index(ui->list, ui->selected);
     if (new_row) {
         gtk_widget_add_css_class(GTK_WIDGET(new_row), "selected");
+    }
+    if (ui->current_description && ui->visible && ui->selected >= 0) {
+        CommandResult *result = g_ptr_array_index(ui->visible, ui->selected);
+        gtk_label_set_text(ui->current_description, result->description);
     }
 }
 
@@ -231,6 +263,15 @@ static gboolean key_pressed(GtkEventControllerKey *controller,
     (void) keycode;
     if (keyval == GDK_KEY_Escape) {
         ui_hide(ui);
+        return TRUE;
+    }
+    if (keyval == GDK_KEY_Tab && ui->visible && ui->selected >= 0 &&
+        (guint) ui->selected < ui->visible->len) {
+        CommandResult *result = g_ptr_array_index(ui->visible, ui->selected);
+        if (result->command_text && *result->command_text) {
+            gtk_editable_set_text(GTK_EDITABLE(ui->entry), result->command_text);
+            gtk_editable_set_position(GTK_EDITABLE(ui->entry), -1);
+        }
         return TRUE;
     }
     if (keyval == GDK_KEY_Up || (keyval == GDK_KEY_p && (state & GDK_CONTROL_MASK))) {
@@ -321,7 +362,8 @@ Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GErr
     GtkCssProvider *css;
     GtkWidget *panel;
     GtkWidget *header;
-    GtkWidget *scroll;
+    GtkWidget *entry_overlay;
+    GtkWidget *list;
     GtkEventController *keys;
     (void) error;
 
@@ -336,7 +378,7 @@ Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GErr
     ui->window = GTK_WINDOW(gtk_window_new());
     gtk_window_set_decorated(ui->window, FALSE);
     gtk_window_set_resizable(ui->window, FALSE);
-    gtk_window_set_default_size(ui->window, config->width, -1);
+    gtk_window_set_default_size(ui->window, config->width, 128 + config->max_results * 58);
     gtk_window_set_hide_on_close(ui->window, TRUE);
 
     panel = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
@@ -353,13 +395,26 @@ Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GErr
 
     ui->entry = GTK_ENTRY(gtk_entry_new());
     gtk_entry_set_placeholder_text(ui->entry, "Search commands…");
-    gtk_box_append(GTK_BOX(panel), GTK_WIDGET(ui->entry));
-    scroll = gtk_scrolled_window_new();
-    gtk_widget_set_vexpand(scroll, TRUE);
+    entry_overlay = gtk_overlay_new();
+    ui->ghost_label = GTK_LABEL(gtk_label_new(""));
+    gtk_widget_add_css_class(GTK_WIDGET(ui->ghost_label), "ghost");
+    gtk_widget_set_halign(GTK_WIDGET(ui->ghost_label), GTK_ALIGN_START);
+    gtk_widget_set_margin_start(GTK_WIDGET(ui->ghost_label), 12);
+    gtk_widget_set_margin_top(GTK_WIDGET(ui->ghost_label), 9);
+    gtk_widget_set_can_target(GTK_WIDGET(ui->ghost_label), FALSE);
+    gtk_overlay_set_child(GTK_OVERLAY(entry_overlay), GTK_WIDGET(ui->ghost_label));
+    gtk_overlay_add_overlay(GTK_OVERLAY(entry_overlay), GTK_WIDGET(ui->entry));
+    gtk_box_append(GTK_BOX(panel), entry_overlay);
+    ui->current_description = GTK_LABEL(gtk_label_new(""));
+    gtk_label_set_xalign(ui->current_description, 0);
+    gtk_label_set_ellipsize(ui->current_description, PANGO_ELLIPSIZE_END);
+    gtk_widget_add_css_class(GTK_WIDGET(ui->current_description), "current-description");
+    gtk_box_append(GTK_BOX(panel), GTK_WIDGET(ui->current_description));
     ui->list = GTK_LIST_BOX(gtk_list_box_new());
     gtk_list_box_set_selection_mode(ui->list, GTK_SELECTION_NONE);
-    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), GTK_WIDGET(ui->list));
-    gtk_box_append(GTK_BOX(panel), scroll);
+    gtk_widget_set_size_request(GTK_WIDGET(ui->list), -1, config->max_results * 58);
+    list = GTK_WIDGET(ui->list);
+    gtk_box_append(GTK_BOX(panel), list);
     ui->status_label = GTK_LABEL(gtk_label_new(""));
     gtk_label_set_xalign(ui->status_label, 0);
     gtk_box_append(GTK_BOX(panel), GTK_WIDGET(ui->status_label));
