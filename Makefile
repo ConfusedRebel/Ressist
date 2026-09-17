@@ -14,6 +14,7 @@ APP_BIN := windowcmd
 APP_SRCS := src/main.c src/control.c src/hyprland.c src/ui.c src/providers.c src/parser.c src/ranking.c src/config.c src/history.c
 DOC_TEST := tests/test_docs.sh
 UPDATE_TEST := tests/test_update.sh
+UI_ACTIVATION_TEST := tests/test_ui_activation.sh
 PREFIX ?= /usr/local
 DESTDIR ?=
 INSTALL_BIN_DIR := $(DESTDIR)$(PREFIX)/bin
@@ -24,11 +25,12 @@ INSTALL_SYSTEMD_DIR := $(DESTDIR)$(PREFIX)/lib/systemd/user
 
 all: $(APP_BIN)
 
-test: $(TEST_BIN) $(CONTROL_TEST_BIN) $(DOC_TEST) $(UPDATE_TEST)
+test: $(TEST_BIN) $(CONTROL_TEST_BIN) $(DOC_TEST) $(UPDATE_TEST) $(UI_ACTIVATION_TEST)
 	./$(TEST_BIN)
 	./$(CONTROL_TEST_BIN)
 	sh $(DOC_TEST)
 	sh $(UPDATE_TEST)
+	sh $(UI_ACTIVATION_TEST)
 
 $(TEST_BIN): tests/test_core.c src/model.h src/parser.h src/parser.c src/ranking.h src/ranking.c src/config.h src/config.c src/history.h src/history.c src/hyprland.h src/hyprland.c src/providers.h src/providers.c src/ui.h src/ui.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(GLIB_CFLAGS) $(JSON_CFLAGS) $(GTK_CFLAGS) -Isrc tests/test_core.c src/parser.c src/ranking.c src/config.c src/history.c src/hyprland.c src/providers.c src/ui.c $(GLIB_LIBS) $(JSON_LIBS) $(GTK_LIBS) -o $@

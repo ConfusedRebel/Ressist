@@ -252,6 +252,12 @@ static void entry_changed(GtkEditable *editable, gpointer user_data)
     refresh_rows(user_data);
 }
 
+static void entry_activated(GtkEntry *entry, gpointer user_data)
+{
+    (void) entry;
+    execute_selected(user_data);
+}
+
 static gboolean key_pressed(GtkEventControllerKey *controller,
                             guint keyval,
                             guint keycode,
@@ -438,6 +444,7 @@ Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GErr
     gtk_layer_set_anchor(ui->window, GTK_LAYER_SHELL_EDGE_RIGHT, FALSE);
 
     g_signal_connect(ui->entry, "changed", G_CALLBACK(entry_changed), ui);
+    g_signal_connect(ui->entry, "activate", G_CALLBACK(entry_activated), ui);
     g_signal_connect(ui->list, "row-activated", G_CALLBACK(row_activated), ui);
     keys = gtk_event_controller_key_new();
     g_signal_connect(keys, "key-pressed", G_CALLBACK(key_pressed), ui);
