@@ -9,6 +9,7 @@
 #include "history.h"
 #include "hyprland.h"
 #include "providers.h"
+#include "ui.h"
 
 static WindowSnapshot test_target(void)
 {
@@ -331,6 +332,21 @@ static void test_path_provider_is_shell_kind(void)
     g_free(directory);
 }
 
+static void test_ui_navigation_and_filtering(void)
+{
+    CommandResult result = {
+        .title = "Toggle Floating",
+        .description = "Float the window",
+        .keywords = "float tile"
+    };
+
+    g_assert_cmpint(ui_selection_move(0, 3, -1), ==, 2);
+    g_assert_cmpint(ui_selection_move(2, 3, 1), ==, 0);
+    g_assert_cmpint(ui_selection_move(0, 0, 1), ==, -1);
+    g_assert_true(ui_result_matches(&result, "flt"));
+    g_assert_false(ui_result_matches(&result, "xyz"));
+}
+
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -346,5 +362,6 @@ int main(int argc, char **argv)
     g_test_add_func("/providers/context-disabled", test_provider_context_and_disabled_actions);
     g_test_add_func("/providers/path-template", test_path_cache_and_target_template);
     g_test_add_func("/providers/path-shell-kind", test_path_provider_is_shell_kind);
+    g_test_add_func("/ui/navigation-filtering", test_ui_navigation_and_filtering);
     return g_test_run();
 }

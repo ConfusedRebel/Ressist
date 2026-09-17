@@ -1,0 +1,48 @@
+window {
+  background: transparent;
+}
+
+#panel {
+  background: alpha(#101419, 0.97);
+  border: 1px solid alpha(#8fbcbb, 0.36);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+#target {
+  color: #d8dee9;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+entry {
+  background: #1a2028;
+  border: 1px solid alpha(#81a1c1, 0.45);
+  border-radius: 8px;
+  color: #eceff4;
+  padding: 8px 10px;
+}
+
+row {
+  border-radius: 7px;
+  padding: 8px;
+}
+
+row:selected, row.selected {
+  background: alpha(#5e81ac, 0.62);
+}
+
+.result-title {
+  color: #eceff4;
+  font-weight: 700;
+}
+
+.result-description {
+  color: #aeb8c5;
+  font-size: 11px;
+}
+
+.result-provider {
+  color: #88c0d0;
+  font-size: 10px;
+}
