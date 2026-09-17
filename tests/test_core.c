@@ -8,6 +8,7 @@
 #include "config.h"
 #include "history.h"
 #include "hyprland.h"
+#include "providers.h"
 
 static WindowSnapshot test_target(void)
 {
@@ -219,6 +220,117 @@ static void test_hyprland_dispatch_does_not_include_title(void)
     window_snapshot_clear(&snapshot);
 }
 
+static CommandResult *find_result(GPtrArray *results, const gchar *id)
+{
+    for (guint i = 0; i < results->len; i++) {
+        CommandResult *result = g_ptr_array_index(results, i);
+        if (g_strcmp0(result->id, id) == 0) {
+            return result;
+        }
+    }
+    return NULL;
+}
+
+static void test_provider_context_and_disabled_actions(void)
+{
+    Config config = {0};
+    WindowSnapshot target = test_target();
+    GPtrArray *results = NULL;
+    GError *error = NULL;
+    CommandResult *result;
+
+    config_set_defaults(&config);
+    config.include_path_commands = FALSE;
+    g_assert_true(provider_collect(&config, &target, NULL, &results, &error));
+    g_assert_no_error(error);
+    result = find_result(results, "float");
+    g_assert_nonnull(result);
+    g_assert_cmpstr(result->title, ==, "FLOAT");
+    g_ptr_array_unref(results);
+
+    target.floating = TRUE;
+    g_assert_true(provider_collect(&config, &target, NULL, &results, &error));
+    result = find_result(results, "float");
+    g_assert_nonnull(result);
+    g_assert_cmpstr(result->title, ==, "TILE");
+    g_ptr_array_unref(results);
+
+    g_ptr_array_add(config.disabled_builtins, g_strdup("close"));
+    g_assert_true(provider_collect(&config, &target, NULL, &results, &error));
+    g_assert_null(find_result(results, "close"));
+    g_ptr_array_unref(results);
+    config_clear(&config);
+    window_snapshot_clear(&target);
+}
+
+static void test_path_cache_and_target_template(void)
+{
+    gchar *directory = g_dir_make_tmp("windowcmd-path-XXXXXX", NULL);
+    gchar *executable = g_build_filename(directory, "windowcmd-test", NULL);
+    const gchar *old_path = g_getenv("PATH");
+    PathCache cache = {0};
+    WindowSnapshot target = test_target();
+    gchar *expanded = NULL;
+    GError *error = NULL;
+
+    g_assert_true(g_file_set_contents(executable, "#!/bin/sh\n", -1, &error));
+    g_assert_no_error(error);
+    g_assert_cmpint(g_chmod(executable, 0700), ==, 0);
+    g_setenv("PATH", directory, TRUE);
+    g_assert_true(path_cache_refresh_if_needed(&cache, directory, 600, &error));
+    g_assert_no_error(error);
+    g_assert_true(g_hash_table_contains(cache.commands, "windowcmd-test"));
+    g_assert_true(expand_target_template("pid=${HYPR_TARGET_PID} title=${HYPR_TARGET_TITLE}",
+                                         &target, &expanded, &error));
+    g_assert_no_error(error);
+    g_assert_cmpstr(expanded, ==, "pid=42 title=Browser");
+
+    g_setenv("PATH", old_path ? old_path : "", TRUE);
+    g_free(expanded);
+    path_cache_clear(&cache);
+    window_snapshot_clear(&target);
+    g_remove(executable);
+    g_rmdir(directory);
+    g_free(executable);
+    g_free(directory);
+}
+
+static void test_path_provider_is_shell_kind(void)
+{
+    gchar *directory = g_dir_make_tmp("windowcmd-provider-XXXXXX", NULL);
+    gchar *executable = g_build_filename(directory, "windowcmd-test", NULL);
+    const gchar *old_path = g_getenv("PATH");
+    Config config = {0};
+    WindowSnapshot target = test_target();
+    GPtrArray *results = NULL;
+    gboolean found_shell = FALSE;
+    GError *error = NULL;
+
+    g_file_set_contents(executable, "#!/bin/sh\n", -1, NULL);
+    g_chmod(executable, 0700);
+    g_setenv("PATH", directory, TRUE);
+    config_set_defaults(&config);
+    g_assert_true(provider_collect(&config, &target, NULL, &results, &error));
+    g_assert_no_error(error);
+    for (guint i = 0; i < results->len; i++) {
+        CommandResult *result = g_ptr_array_index(results, i);
+        if (g_strcmp0(result->id, "windowcmd-test") == 0) {
+            g_assert_cmpint(result->kind, ==, COMMAND_SHELL);
+            found_shell = TRUE;
+        }
+    }
+    g_assert_true(found_shell);
+
+    g_setenv("PATH", old_path ? old_path : "", TRUE);
+    g_ptr_array_unref(results);
+    config_clear(&config);
+    window_snapshot_clear(&target);
+    g_remove(executable);
+    g_rmdir(directory);
+    g_free(executable);
+    g_free(directory);
+}
+
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -231,5 +343,8 @@ int main(int argc, char **argv)
     g_test_add_func("/history/counts-trims", test_history_counts_and_trims);
     g_test_add_func("/hyprland/fixture-parsing", test_hyprland_fixture_parsing);
     g_test_add_func("/hyprland/safe-dispatch", test_hyprland_dispatch_does_not_include_title);
+    g_test_add_func("/providers/context-disabled", test_provider_context_and_disabled_actions);
+    g_test_add_func("/providers/path-template", test_path_cache_and_target_template);
+    g_test_add_func("/providers/path-shell-kind", test_path_provider_is_shell_kind);
     return g_test_run();
 }
