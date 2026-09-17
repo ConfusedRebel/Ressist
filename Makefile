@@ -11,14 +11,21 @@ TEST_BIN := build/test_core
 CONTROL_TEST_BIN := build/test_control
 APP_BIN := windowcmd
 APP_SRCS := src/main.c src/control.c src/hyprland.c src/ui.c src/providers.c src/parser.c src/ranking.c src/config.c src/history.c
+DOC_TEST := tests/test_docs.sh
+PREFIX ?= /usr/local
+DESTDIR ?=
+INSTALL_BIN_DIR := $(DESTDIR)$(PREFIX)/bin
+INSTALL_DATA_DIR := $(DESTDIR)$(PREFIX)/share/windowcmd
+INSTALL_SYSTEMD_DIR := $(DESTDIR)$(PREFIX)/lib/systemd/user
 
-.PHONY: all test clean
+.PHONY: all test clean install uninstall
 
 all: $(APP_BIN)
 
-test: $(TEST_BIN) $(CONTROL_TEST_BIN)
+test: $(TEST_BIN) $(CONTROL_TEST_BIN) $(DOC_TEST)
 	./$(TEST_BIN)
 	./$(CONTROL_TEST_BIN)
+	sh $(DOC_TEST)
 
 $(TEST_BIN): tests/test_core.c src/model.h src/parser.h src/parser.c src/ranking.h src/ranking.c src/config.h src/config.c src/history.h src/history.c src/hyprland.h src/hyprland.c src/providers.h src/providers.c src/ui.h src/ui.c | build
 	$(CC) $(CFLAGS) $(GLIB_CFLAGS) $(JSON_CFLAGS) $(GTK_CFLAGS) -Isrc tests/test_core.c src/parser.c src/ranking.c src/config.c src/history.c src/hyprland.c src/providers.c src/ui.c $(GLIB_LIBS) $(JSON_LIBS) $(GTK_LIBS) -o $@
@@ -33,4 +40,15 @@ build:
 	mkdir -p $@
 
 clean:
-	rm -rf build
+	rm -rf build $(APP_BIN)
+
+install: $(APP_BIN)
+	install -Dm755 $(APP_BIN) $(INSTALL_BIN_DIR)/windowcmd
+	install -Dm644 data/windowcmd.css $(INSTALL_DATA_DIR)/windowcmd.css
+	install -Dm644 config/windowcmd.example.json $(INSTALL_DATA_DIR)/windowcmd.example.json
+	install -Dm644 systemd/windowcmd.service $(INSTALL_SYSTEMD_DIR)/windowcmd.service
+
+uninstall:
+	rm -f $(INSTALL_BIN_DIR)/windowcmd
+	rm -rf $(INSTALL_DATA_DIR)
+	rm -f $(INSTALL_SYSTEMD_DIR)/windowcmd.service

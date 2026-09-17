@@ -8,11 +8,18 @@
 
 static PathCache global_path_cache;
 
-static void result_free(gpointer data)
+void command_result_free(CommandResult *result)
 {
-    CommandResult *result = data;
+    if (!result) {
+        return;
+    }
     command_result_clear(result);
     g_free(result);
+}
+
+static void result_free(gpointer data)
+{
+    command_result_free(data);
 }
 
 static CommandResult *result_new(const gchar *id,
@@ -31,6 +38,20 @@ static CommandResult *result_new(const gchar *id,
     result->provider = g_strdup(kind == COMMAND_WINDOW ? "Hyprland" :
                                  kind == COMMAND_CUSTOM ? "Custom" : "PATH");
     result->kind = kind;
+    return result;
+}
+
+CommandResult *provider_shell_result(const gchar *command)
+{
+    gchar *title;
+    CommandResult *result;
+    if (!command || !*command) {
+        return NULL;
+    }
+    title = g_strdup_printf("RUN %s", command);
+    result = result_new("shell-input", title, "Run this shell command with target environment",
+                        command, command, COMMAND_SHELL);
+    g_free(title);
     return result;
 }
 

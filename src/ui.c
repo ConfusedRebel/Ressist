@@ -21,6 +21,7 @@ struct Ui {
     GtkLabel *status_label;
     GPtrArray *results;
     GPtrArray *visible;
+    CommandResult *typed_result;
     WindowSnapshot target;
     gint selected;
     guint target_timer;
@@ -133,6 +134,17 @@ static void refresh_rows(Ui *ui)
 {
     const gchar *query = gtk_editable_get_text(GTK_EDITABLE(ui->entry));
     GPtrArray *ranked = g_ptr_array_new_with_free_func(ranked_free);
+
+    if (ui->typed_result) {
+        g_ptr_array_remove(ui->results, ui->typed_result);
+        ui->typed_result = NULL;
+    }
+    if (query && strchr(query, ' ')) {
+        ui->typed_result = provider_shell_result(query);
+        if (ui->typed_result) {
+            g_ptr_array_add(ui->results, ui->typed_result);
+        }
+    }
 
     for (guint i = 0; ui->results && i < ui->results->len; i++) {
         CommandResult *result = g_ptr_array_index(ui->results, i);
@@ -275,6 +287,34 @@ static void set_monitor(Ui *ui)
     g_object_unref(monitor);
 }
 
+static void load_css(GtkCssProvider *css)
+{
+    gchar *user_path = g_build_filename(g_get_user_data_dir(), "windowcmd", "windowcmd.css", NULL);
+    const gchar * const *system_dirs = g_get_system_data_dirs();
+    gchar *system_path = NULL;
+    const gchar *path = NULL;
+
+    if (g_file_test("data/windowcmd.css", G_FILE_TEST_EXISTS)) {
+        path = "data/windowcmd.css";
+    } else if (g_file_test(user_path, G_FILE_TEST_EXISTS)) {
+        path = user_path;
+    } else {
+        for (guint i = 0; system_dirs && system_dirs[i]; i++) {
+            g_free(system_path);
+            system_path = g_build_filename(system_dirs[i], "windowcmd", "windowcmd.css", NULL);
+            if (g_file_test(system_path, G_FILE_TEST_EXISTS)) {
+                path = system_path;
+                break;
+            }
+        }
+    }
+    if (path) {
+        gtk_css_provider_load_from_path(css, path);
+    }
+    g_free(system_path);
+    g_free(user_path);
+}
+
 Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GError **error)
 {
     Ui *ui;
@@ -326,7 +366,7 @@ Ui *ui_new(const Config *config, Hyprland *hyprland, HistoryStore *history, GErr
     gtk_window_set_child(ui->window, panel);
 
     css = gtk_css_provider_new();
-    gtk_css_provider_load_from_path(css, "data/windowcmd.css");
+    load_css(css);
     gtk_style_context_add_provider_for_display(gdk_display_get_default(),
                                                GTK_STYLE_PROVIDER(css),
                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -363,6 +403,7 @@ void ui_show(Ui *ui, const WindowSnapshot *target)
                              target->title && *target->title ? target->title : "Untitled window");
     gtk_label_set_text(ui->target_label, header);
     g_free(header);
+    ui->typed_result = NULL;
     g_clear_pointer(&ui->results, g_ptr_array_unref);
     provider_collect(ui->config, &ui->target, ui->history, &ui->results, &error);
     if (error) {

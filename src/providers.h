@@ -10,6 +10,8 @@ typedef struct {
     GHashTable *commands;
 } PathCache;
 
+CommandResult *provider_shell_result(const gchar *command);
+void command_result_free(CommandResult *result);
 void path_cache_clear(PathCache *cache);
 gboolean path_cache_refresh_if_needed(PathCache *cache,
                                       const gchar *path,

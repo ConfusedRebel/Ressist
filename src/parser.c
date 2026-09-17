@@ -97,9 +97,7 @@ gboolean parse_window_command(const gchar *text,
             return fail_invalid(error, "opacity expects a number from 0 to 1");
         }
     } else if ((g_strcmp0(tokens[0], "float") == 0 ||
-                g_strcmp0(tokens[0], "tile") == 0 ||
-                (g_strcmp0(tokens[0], "toggle") == 0 && count == 2 &&
-                 g_strcmp0(tokens[1], "floating") == 0)) && count == 1) {
+                g_strcmp0(tokens[0], "tile") == 0) && count == 1) {
         out->kind = ACTION_TOGGLE_FLOATING;
     } else if (g_strcmp0(tokens[0], "toggle") == 0 && count == 2 &&
                g_strcmp0(tokens[1], "floating") == 0) {
@@ -113,6 +111,32 @@ gboolean parse_window_command(const gchar *text,
         out->kind = ACTION_CLOSE;
     } else if (g_strcmp0(tokens[0], "kill") == 0 && count == 1) {
         out->kind = ACTION_KILL;
+    } else if (g_strcmp0(tokens[0], "pin") == 0 && count == 1) {
+        out->kind = ACTION_PIN;
+    } else if (g_strcmp0(tokens[0], "unpin") == 0 && count == 1) {
+        out->kind = ACTION_UNPIN;
+    } else if (g_strcmp0(tokens[0], "center") == 0 && count == 1) {
+        out->kind = ACTION_CENTER;
+    } else if (g_strcmp0(tokens[0], "move") == 0 && count == 2) {
+        out->kind = ACTION_MOVE_DIRECTION;
+        if (g_strcmp0(tokens[1], "left") == 0) out->direction = g_strdup("l");
+        else if (g_strcmp0(tokens[1], "right") == 0) out->direction = g_strdup("r");
+        else if (g_strcmp0(tokens[1], "up") == 0) out->direction = g_strdup("u");
+        else if (g_strcmp0(tokens[1], "down") == 0) out->direction = g_strdup("d");
+        else {
+            g_strfreev(tokens);
+            parsed_action_clear(out);
+            return fail_invalid(error, "move expects left, right, up, or down");
+        }
+    } else if (g_strcmp0(tokens[0], "monitor") == 0 && count == 2 && *tokens[1]) {
+        out->kind = ACTION_MONITOR;
+        out->monitor = g_strdup(tokens[1]);
+    } else if (g_strcmp0(tokens[0], "pseudo") == 0 && count == 1) {
+        out->kind = ACTION_TOGGLE_PSEUDO;
+    } else if (g_strcmp0(tokens[0], "split") == 0 && count == 1) {
+        out->kind = ACTION_TOGGLE_SPLIT;
+    } else if (g_strcmp0(tokens[0], "always-on-top") == 0 && count == 1) {
+        out->kind = ACTION_TOGGLE_TOP;
     } else if (g_strcmp0(tokens[0], "focus") == 0 && count == 1) {
         out->kind = ACTION_FOCUS;
     } else {

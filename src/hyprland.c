@@ -144,7 +144,7 @@ gboolean hyprland_build_dispatch_argv(const WindowSnapshot *target,
     case ACTION_MOVE_WORKSPACE_SILENT: dispatcher = "movetoworkspacesilent"; argument = g_strdup_printf("%s,%s", action->workspace, selector); break;
     case ACTION_RESIZE: dispatcher = "resizeactive"; argument = g_strdup_printf("exact %d %d,%s", action->width, action->height, selector); break;
     case ACTION_OPACITY: dispatcher = "setprop"; argument = g_strdup_printf("opacity %g", action->opacity); break;
-    case ACTION_MONITOR: dispatcher = "movewindow"; argument = g_strdup_printf("mon:%s", action->monitor); break;
+    case ACTION_MONITOR: dispatcher = "movewindow"; argument = g_strdup_printf("mon:%s,%s", action->monitor, selector); break;
     case ACTION_TOGGLE_TOP: dispatcher = "pin"; break;
     default: break;
     }
@@ -159,7 +159,8 @@ gboolean hyprland_build_dispatch_argv(const WindowSnapshot *target,
     if (g_strcmp0(dispatcher, "setprop") == 0) {
         g_ptr_array_add(parts, g_strdup("setprop"));
         g_ptr_array_add(parts, g_strdup(selector));
-        g_ptr_array_add(parts, g_strdup(argument));
+        g_ptr_array_add(parts, g_strdup("opacity"));
+        g_ptr_array_add(parts, g_strdup_printf("%g", action->opacity));
     } else {
         g_ptr_array_add(parts, g_strdup("dispatch"));
         g_ptr_array_add(parts, g_strdup(dispatcher));

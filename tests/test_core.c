@@ -96,6 +96,34 @@ static void test_parse_rejects_invalid_arguments(void)
     window_snapshot_clear(&target);
 }
 
+static void test_parse_all_displayed_window_actions(void)
+{
+    WindowSnapshot target = test_target();
+    ParsedAction action = {0};
+    GError *error = NULL;
+
+    g_assert_true(parse_window_command("pin", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_PIN);
+    g_assert_true(parse_window_command("unpin", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_UNPIN);
+    g_assert_true(parse_window_command("center", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_CENTER);
+    g_assert_true(parse_window_command("move left", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_MOVE_DIRECTION);
+    g_assert_cmpstr(action.direction, ==, "l");
+    g_assert_true(parse_window_command("pseudo", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_TOGGLE_PSEUDO);
+    g_assert_true(parse_window_command("split", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_TOGGLE_SPLIT);
+    g_assert_true(parse_window_command("monitor HDMI-A-1", &target, &action, &error));
+    g_assert_cmpint(action.kind, ==, ACTION_MONITOR);
+    g_assert_cmpstr(action.monitor, ==, "HDMI-A-1");
+    g_assert_no_error(error);
+
+    parsed_action_clear(&action);
+    window_snapshot_clear(&target);
+}
+
 static void test_fuzzy_prefix_beats_scattered_match(void)
 {
     g_assert_cmpint(fuzzy_score("flo", "float"), >, fuzzy_score("flo", "file-open"));
@@ -253,6 +281,25 @@ static void test_hyprland_dispatch_does_not_include_title(void)
     window_snapshot_clear(&snapshot);
 }
 
+static void test_hyprland_opacity_dispatch_is_structured(void)
+{
+    WindowSnapshot snapshot = {.address = g_strdup("0x1234")};
+    ParsedAction action = {.kind = ACTION_OPACITY, .opacity = 0.9};
+    gchar **argv = NULL;
+    GError *error = NULL;
+
+    g_assert_true(hyprland_build_dispatch_argv(&snapshot, &action, &argv, &error));
+    g_assert_no_error(error);
+    g_assert_cmpstr(argv[1], ==, "setprop");
+    g_assert_cmpstr(argv[2], ==, "address:0x1234");
+    g_assert_cmpstr(argv[3], ==, "opacity");
+    g_assert_cmpstr(argv[4], ==, "0.9");
+    g_assert_null(argv[5]);
+
+    g_strfreev(argv);
+    window_snapshot_clear(&snapshot);
+}
+
 static CommandResult *find_result(GPtrArray *results, const gchar *id)
 {
     for (guint i = 0; i < results->len; i++) {
@@ -364,6 +411,16 @@ static void test_path_provider_is_shell_kind(void)
     g_free(directory);
 }
 
+static void test_arbitrary_query_becomes_shell_result(void)
+{
+    CommandResult *result = provider_shell_result("echo hello");
+    g_assert_nonnull(result);
+    g_assert_cmpint(result->kind, ==, COMMAND_SHELL);
+    g_assert_cmpstr(result->command_text, ==, "echo hello");
+    g_assert_true(g_str_has_prefix(result->title, "RUN"));
+    command_result_free(result);
+}
+
 static void test_ui_navigation_and_filtering(void)
 {
     CommandResult result = {
@@ -386,6 +443,7 @@ int main(int argc, char **argv)
     g_test_add_func("/parser/silent-workspace", test_parse_silent_workspace);
     g_test_add_func("/parser/resize-opacity", test_parse_resize_and_opacity);
     g_test_add_func("/parser/invalid-arguments", test_parse_rejects_invalid_arguments);
+    g_test_add_func("/parser/displayed-actions", test_parse_all_displayed_window_actions);
     g_test_add_func("/ranking/fuzzy-prefix", test_fuzzy_prefix_beats_scattered_match);
     g_test_add_func("/config/defaults-overrides", test_config_defaults_and_overrides);
     g_test_add_func("/history/counts-trims", test_history_counts_and_trims);
@@ -393,9 +451,11 @@ int main(int argc, char **argv)
     g_test_add_func("/history/default-path", test_history_default_path);
     g_test_add_func("/hyprland/fixture-parsing", test_hyprland_fixture_parsing);
     g_test_add_func("/hyprland/safe-dispatch", test_hyprland_dispatch_does_not_include_title);
+    g_test_add_func("/hyprland/opacity-dispatch", test_hyprland_opacity_dispatch_is_structured);
     g_test_add_func("/providers/context-disabled", test_provider_context_and_disabled_actions);
     g_test_add_func("/providers/path-template", test_path_cache_and_target_template);
     g_test_add_func("/providers/path-shell-kind", test_path_provider_is_shell_kind);
+    g_test_add_func("/providers/arbitrary-shell", test_arbitrary_query_becomes_shell_result);
     g_test_add_func("/ui/navigation-filtering", test_ui_navigation_and_filtering);
     return g_test_run();
 }
