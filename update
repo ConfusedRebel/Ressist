@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$PROJECT_DIR"
+
+printf '%s\n' 'Running tests...'
+make test
+
+if [ -n "${PREFIX:-}" ]; then
+    INSTALL_PREFIX=$PREFIX
+    printf 'Installing to %s...\n' "$INSTALL_PREFIX"
+    make install PREFIX="$INSTALL_PREFIX"
+else
+    INSTALL_PREFIX=/usr/local
+    printf '%s\n' 'Installing to /usr/local (sudo may ask for your password)...'
+    sudo make install
+fi
+
+APP_BIN=${WINDOWCMD_BIN:-$INSTALL_PREFIX/bin/windowcmd}
+
+if command -v systemctl >/dev/null 2>&1 && \
+   (systemctl --user is-active --quiet windowcmd.service 2>/dev/null || \
+    systemctl --user is-enabled --quiet windowcmd.service 2>/dev/null); then
+    printf '%s\n' 'Restarting the user service...'
+    systemctl --user restart windowcmd.service
+else
+    printf '%s\n' 'Restarting the background process...'
+    "$APP_BIN" hide >/dev/null 2>&1 || true
+    pkill -x windowcmd >/dev/null 2>&1 || true
+    "$APP_BIN" start
+fi
+
+printf '%s\n' 'windowcmd updated.'

@@ -39,6 +39,23 @@ For a user-local install:
 make install PREFIX="$HOME/.local"
 ```
 
+To test, install, and restart the current checkout in one step, run:
+
+```sh
+./update
+```
+
+By default this installs to `/usr/local` with `sudo`. For a user-local update
+without `sudo`, run:
+
+```sh
+PREFIX="$HOME/.local" ./update
+```
+
+The helper restarts an enabled or active user service when one is configured;
+otherwise it restarts the direct background process. Set `WINDOWCMD_BIN` if
+the installed executable is in a non-standard location.
+
 The install target places the binary in `bin`, the stylesheet and example
 config under `share/windowcmd`, and the user service under
 `lib/systemd/user`. It does not write a user configuration during build.
