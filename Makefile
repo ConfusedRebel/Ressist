@@ -14,8 +14,8 @@ all: test
 test: $(TEST_BIN)
 	./$(TEST_BIN)
 
-$(TEST_BIN): tests/test_core.c src/model.h src/parser.h src/ranking.h src/parser.c src/ranking.c src/config.h src/config.c src/history.h src/history.c | build
-	$(CC) $(CFLAGS) $(GLIB_CFLAGS) $(JSON_CFLAGS) -Isrc tests/test_core.c src/parser.c src/ranking.c src/config.c src/history.c $(GLIB_LIBS) $(JSON_LIBS) -o $@
+$(TEST_BIN): tests/test_core.c src/model.h src/parser.h src/parser.c src/ranking.h src/ranking.c src/config.h src/config.c src/history.h src/history.c src/hyprland.h src/hyprland.c | build
+	$(CC) $(CFLAGS) $(GLIB_CFLAGS) $(JSON_CFLAGS) -Isrc tests/test_core.c src/parser.c src/ranking.c src/config.c src/history.c src/hyprland.c $(GLIB_LIBS) $(JSON_LIBS) -o $@
 
 build:
 	mkdir -p $@

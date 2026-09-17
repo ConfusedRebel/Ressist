@@ -1,0 +1,26 @@
+[
+  {
+    "address": "0x1234",
+    "class": "Firefox",
+    "title": "YouTube; \"quoted\"",
+    "pid": 42,
+    "workspace": { "id": 2, "name": "2" },
+    "monitor": 0,
+    "floating": false,
+    "fullscreen": 1,
+    "pinned": true,
+    "pseudo": false
+  },
+  {
+    "address": "0x5678",
+    "class": "kitty",
+    "title": "Terminal",
+    "pid": 43,
+    "workspace": { "id": 1, "name": "1" },
+    "monitor": 0,
+    "floating": true,
+    "fullscreen": 0,
+    "pinned": false,
+    "pseudo": false
+  }
+]

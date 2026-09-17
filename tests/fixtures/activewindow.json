@@ -1,0 +1,13 @@
+{
+  "address": "0x1234",
+  "workspace": { "id": 2, "name": "2" },
+  "floating": false,
+  "monitor": 0,
+  "class": "Firefox",
+  "title": "YouTube; \"quoted\"",
+  "pid": 42,
+  "pinned": true,
+  "fullscreen": 1,
+  "pseudo": false,
+  "size": [1280, 720]
+}

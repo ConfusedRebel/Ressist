@@ -1,11 +1,13 @@
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <string.h>
 
 #include "model.h"
 #include "parser.h"
 #include "ranking.h"
 #include "config.h"
 #include "history.h"
+#include "hyprland.h"
 
 static WindowSnapshot test_target(void)
 {
@@ -161,6 +163,62 @@ static void test_history_counts_and_trims(void)
     g_free(directory);
 }
 
+static void test_hyprland_fixture_parsing(void)
+{
+    gchar *json = NULL;
+    WindowSnapshot snapshot = {0};
+    gboolean exists = FALSE;
+    GError *error = NULL;
+
+    g_assert_true(g_file_get_contents("tests/fixtures/activewindow.json", &json, NULL, &error));
+    g_assert_no_error(error);
+    g_assert_true(hyprland_parse_active_json(json, &snapshot, &error));
+    g_assert_no_error(error);
+    g_assert_cmpstr(snapshot.address, ==, "0x1234");
+    g_assert_cmpstr(snapshot.class_name, ==, "Firefox");
+    g_assert_cmpstr(snapshot.title, ==, "YouTube; \"quoted\"");
+    g_assert_cmpint(snapshot.pid, ==, 42);
+    g_assert_cmpint(snapshot.workspace, ==, 2);
+    g_assert_cmpint(snapshot.monitor, ==, 0);
+    g_assert_false(snapshot.floating);
+    g_assert_true(snapshot.pinned);
+    g_assert_true(snapshot.fullscreen);
+
+    g_assert_true(g_file_get_contents("tests/fixtures/clients.json", &json, NULL, &error));
+    g_assert_no_error(error);
+    g_assert_true(hyprland_address_in_clients_json(json, "0x1234", &exists, &error));
+    g_assert_no_error(error);
+    g_assert_true(exists);
+    g_assert_true(hyprland_address_in_clients_json(json, "0x9999", &exists, &error));
+    g_assert_no_error(error);
+    g_assert_false(exists);
+
+    window_snapshot_clear(&snapshot);
+    g_free(json);
+}
+
+static void test_hyprland_dispatch_does_not_include_title(void)
+{
+    WindowSnapshot snapshot = {
+        .address = g_strdup("0x1234"),
+        .title = g_strdup("do not execute; rm -rf /")
+    };
+    ParsedAction action = {.kind = ACTION_CLOSE};
+    gchar **argv = NULL;
+    gchar *joined;
+    GError *error = NULL;
+
+    g_assert_true(hyprland_build_dispatch_argv(&snapshot, &action, &argv, &error));
+    g_assert_no_error(error);
+    joined = g_strjoinv(" ", argv);
+    g_assert_nonnull(strstr(joined, "address:0x1234"));
+    g_assert_null(strstr(joined, snapshot.title));
+
+    g_free(joined);
+    g_strfreev(argv);
+    window_snapshot_clear(&snapshot);
+}
+
 int main(int argc, char **argv)
 {
     g_test_init(&argc, &argv, NULL);
@@ -171,5 +229,7 @@ int main(int argc, char **argv)
     g_test_add_func("/ranking/fuzzy-prefix", test_fuzzy_prefix_beats_scattered_match);
     g_test_add_func("/config/defaults-overrides", test_config_defaults_and_overrides);
     g_test_add_func("/history/counts-trims", test_history_counts_and_trims);
+    g_test_add_func("/hyprland/fixture-parsing", test_hyprland_fixture_parsing);
+    g_test_add_func("/hyprland/safe-dispatch", test_hyprland_dispatch_does_not_include_title);
     return g_test_run();
 }
