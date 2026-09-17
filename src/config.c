@@ -1,6 +1,8 @@
 #include "config.h"
 
+#include <errno.h>
 #include <json-glib/json-glib.h>
+#include <glib/gstdio.h>
 
 static void custom_command_free(gpointer data)
 {
@@ -69,6 +71,50 @@ void config_clear(Config *config)
 gchar *config_default_path(void)
 {
     return g_build_filename(g_get_user_config_dir(), "windowcmd", "config.json", NULL);
+}
+
+gboolean config_write_default(const gchar *path, GError **error)
+{
+    static const gchar example[] =
+        "{\n"
+        "  \"width\": 640,\n"
+        "  \"max_results\": 8,\n"
+        "  \"position\": \"center\",\n"
+        "  \"font\": \"Sans 11\",\n"
+        "  \"border_radius\": 12,\n"
+        "  \"transparency\": 0.96,\n"
+        "  \"history_size\": 200,\n"
+        "  \"shell\": \"/bin/sh\",\n"
+        "  \"include_path_commands\": true,\n"
+        "  \"path_refresh_seconds\": 600,\n"
+        "  \"disabled_builtins\": [],\n"
+        "  \"aliases\": [],\n"
+        "  \"custom_commands\": [],\n"
+        "  \"ranking\": {\"exact\": 1.0, \"prefix\": 0.8, \"history\": 1.0, "
+        "\"frequency\": 0.25, \"recency\": 0.25, \"application\": 0.5, \"state\": 0.5}\n"
+        "}\n";
+    gchar *directory;
+    gboolean ok;
+
+    if (!path || !*path) {
+        g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_INVAL, "config path is missing");
+        return FALSE;
+    }
+    if (g_file_test(path, G_FILE_TEST_EXISTS)) {
+        return TRUE;
+    }
+    directory = g_path_get_dirname(path);
+    if (g_mkdir_with_parents(directory, 0700) != 0) {
+        g_set_error(error, G_FILE_ERROR, g_file_error_from_errno(errno), "cannot create config directory");
+        g_free(directory);
+        return FALSE;
+    }
+    ok = g_file_set_contents(path, example, -1, error);
+    if (ok) {
+        g_chmod(path, 0600);
+    }
+    g_free(directory);
+    return ok;
 }
 
 static const gchar *string_member(JsonObject *object, const gchar *name)

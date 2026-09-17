@@ -8,6 +8,7 @@ typedef struct {
     guint max_entries;
 } HistoryStore;
 
+gchar *history_default_path(void);
 gboolean history_load(const gchar *path, guint max_entries, HistoryStore **out, GError **error);
 void history_store_free(HistoryStore *history);
 void history_record(HistoryStore *history,

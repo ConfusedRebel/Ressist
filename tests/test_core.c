@@ -165,6 +165,38 @@ static void test_history_counts_and_trims(void)
     g_free(directory);
 }
 
+static void test_config_init_writes_example_once(void)
+{
+    gchar *directory = g_dir_make_tmp("windowcmd-init-XXXXXX", NULL);
+    gchar *path = g_build_filename(directory, "config.json", NULL);
+    Config config = {0};
+    GError *error = NULL;
+
+    g_assert_true(config_write_default(path, &error));
+    g_assert_no_error(error);
+    g_assert_true(config_load(path, &config, &error));
+    g_assert_no_error(error);
+    g_assert_cmpint(config.width, ==, 640);
+    config_clear(&config);
+    g_assert_true(g_file_set_contents(path, "{\"width\": 720}", -1, &error));
+    g_assert_true(config_write_default(path, &error));
+    g_assert_true(config_load(path, &config, &error));
+    g_assert_cmpint(config.width, ==, 720);
+
+    config_clear(&config);
+    g_remove(path);
+    g_rmdir(directory);
+    g_free(path);
+    g_free(directory);
+}
+
+static void test_history_default_path(void)
+{
+    gchar *path = history_default_path();
+    g_assert_true(g_str_has_suffix(path, "windowcmd/history.json"));
+    g_free(path);
+}
+
 static void test_hyprland_fixture_parsing(void)
 {
     gchar *json = NULL;
@@ -357,6 +389,8 @@ int main(int argc, char **argv)
     g_test_add_func("/ranking/fuzzy-prefix", test_fuzzy_prefix_beats_scattered_match);
     g_test_add_func("/config/defaults-overrides", test_config_defaults_and_overrides);
     g_test_add_func("/history/counts-trims", test_history_counts_and_trims);
+    g_test_add_func("/config/init-once", test_config_init_writes_example_once);
+    g_test_add_func("/history/default-path", test_history_default_path);
     g_test_add_func("/hyprland/fixture-parsing", test_hyprland_fixture_parsing);
     g_test_add_func("/hyprland/safe-dispatch", test_hyprland_dispatch_does_not_include_title);
     g_test_add_func("/providers/context-disabled", test_provider_context_and_disabled_actions);

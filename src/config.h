@@ -43,6 +43,7 @@ typedef struct {
 
 void config_set_defaults(Config *config);
 gboolean config_load(const gchar *path, Config *out, GError **error);
+gboolean config_write_default(const gchar *path, GError **error);
 void config_clear(Config *config);
 gchar *config_default_path(void);
 

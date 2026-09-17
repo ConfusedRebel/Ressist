@@ -44,6 +44,11 @@ static HistoryStore *history_store_new(guint max_entries)
     return history;
 }
 
+gchar *history_default_path(void)
+{
+    return g_build_filename(g_get_user_state_dir(), "windowcmd", "history.json", NULL);
+}
+
 void history_store_free(HistoryStore *history)
 {
     if (!history) {
