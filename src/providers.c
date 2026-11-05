@@ -48,8 +48,8 @@ CommandResult *provider_shell_result(const gchar *command)
     if (!command || !*command) {
         return NULL;
     }
-    title = g_strdup_printf("RUN %s", command);
-    result = result_new("shell-input", title, "Run this shell command with target environment",
+    title = g_strdup_printf("Run %s", command);
+    result = result_new("shell-input", title, "Run this shell command",
                         command, command, COMMAND_SHELL);
     g_free(title);
     return result;
@@ -91,41 +91,41 @@ static void add_window_builtins(GPtrArray *results,
                                 const WindowSnapshot *target)
 {
     gchar *description;
-    const gchar *fullscreen_title = target->fullscreen ? "EXIT FULLSCREEN" : "FULLSCREEN";
-    const gchar *floating_title = target->floating ? "TILE" : "FLOAT";
-    const gchar *pin_title = target->pinned ? "UNPIN" : "PIN";
+    const gchar *fullscreen_title = target->fullscreen ? "Exit fullscreen" : "Fullscreen";
+    const gchar *floating_title = target->floating ? "Tile window" : "Float window";
+    const gchar *pin_title = target->pinned ? "Unpin window" : "Pin window";
 
     description = g_strdup_printf("Close %s", target->title && *target->title ? target->title : "the target window");
-    add_builtin(results, config, target, "close", "CLOSE", description, "close window", "close");
+    add_builtin(results, config, target, "close", "Close window", description, "close window", "close");
     g_free(description);
     description = g_strdup_printf("Kill %s", target->class_name && *target->class_name ? target->class_name : "the target window");
-    add_builtin(results, config, target, "kill", "KILL", description, "terminate force", "kill");
+    add_builtin(results, config, target, "kill", "Force close window", description, "terminate force", "kill");
     g_free(description);
-    description = g_strdup_printf("Toggle floating mode for %s", target->class_name && *target->class_name ? target->class_name : "the target window");
+    description = g_strdup(target->floating ? "Use tiled layout" : "Use floating layout");
     add_builtin(results, config, target, "float", floating_title, description, "float tile floating tiled", "float");
     g_free(description);
-    description = g_strdup_printf("Change fullscreen mode for %s", target->class_name && *target->class_name ? target->class_name : "the target window");
+    description = g_strdup(target->fullscreen ? "Exit fullscreen mode" : "Enter fullscreen mode");
     add_builtin(results, config, target, "fullscreen", fullscreen_title, description, "fullscreen exit fullscreen", "fullscreen");
     g_free(description);
-    description = g_strdup_printf("%s %s", pin_title, target->class_name && *target->class_name ? target->class_name : "window");
+    description = g_strdup(target->pinned ? "Remove from all workspaces" : "Show on all workspaces");
     add_builtin(results, config, target, "pin", pin_title, description, "pin unpin always on top", target->pinned ? "unpin" : "pin");
     g_free(description);
-    add_builtin(results, config, target, "center", "CENTER", "Center the target window", "center position", "center");
-    add_builtin(results, config, target, "focus", "FOCUS", "Focus the target window", "focus activate", "focus");
-    add_builtin(results, config, target, "pseudo", "PSEUDO", "Toggle pseudo tiling", "pseudo tiling", "pseudo");
+    add_builtin(results, config, target, "center", "Center window", "Center the window on screen", "center position", "center");
+    add_builtin(results, config, target, "focus", "Focus window", "Bring the window to the front", "focus activate", "focus");
+    add_builtin(results, config, target, "pseudo", "Toggle pseudo tiling", "Switch pseudo tiling on or off", "pseudo tiling", "pseudo");
     add_builtin(results, config, target, "split", "SPLIT", "Toggle split locking", "split layout", "split");
-    add_builtin(results, config, target, "move-left", "MOVE LEFT", "Move the window left", "move direction", "move left");
-    add_builtin(results, config, target, "move-right", "MOVE RIGHT", "Move the window right", "move direction", "move right");
-    add_builtin(results, config, target, "move-up", "MOVE UP", "Move the window up", "move direction", "move up");
-    add_builtin(results, config, target, "move-down", "MOVE DOWN", "Move the window down", "move direction", "move down");
-    add_builtin(results, config, target, "opacity", "OPACITY", "Set window opacity, for example: opacity 0.9", "transparent alpha", "opacity 0.9");
-    add_builtin(results, config, target, "monitor", "MONITOR", "Move the window to another monitor, for example: monitor HDMI-A-1", "output display", "monitor 0");
+    add_builtin(results, config, target, "move-left", "Move window left", "Move the window left", "move direction", "move left");
+    add_builtin(results, config, target, "move-right", "Move window right", "Move the window right", "move direction", "move right");
+    add_builtin(results, config, target, "move-up", "Move window up", "Move the window up", "move direction", "move up");
+    add_builtin(results, config, target, "move-down", "Move window down", "Move the window down", "move direction", "move down");
+    add_builtin(results, config, target, "opacity", "Set window opacity", "Set opacity, e.g. 0.9", "transparent alpha", "opacity 0.9");
+    add_builtin(results, config, target, "monitor", "Move window to monitor", "Choose a monitor, e.g. HDMI-A-1", "output display", "monitor 0");
 
     for (gint workspace = 1; workspace <= 10; workspace++) {
         gchar *id = g_strdup_printf("workspace-%d", workspace);
-        gchar *title = g_strdup_printf("WORKSPACE %d", workspace);
+        gchar *title = g_strdup_printf("Move to workspace %d", workspace);
         gchar *command = g_strdup_printf("workspace %d", workspace);
-        gchar *description = g_strdup_printf("Move %s to workspace %d", target->class_name, workspace);
+        gchar *description = g_strdup_printf("Move this window to workspace %d", workspace);
         add_builtin(results, config, target, id, title, description, "workspace move", command);
         g_free(id);
         g_free(title);
